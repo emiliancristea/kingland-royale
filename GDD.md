@@ -42,11 +42,20 @@
 - Balancing Strategy: Keep costs within 1–5, adjust in small increments, avoid cascading swings.
 
 ### 7. Technical Design (Phase 6)
-- Stack: Phaser 3 via CDN, no build system required. Static files only: `index.html`, `js/main.js`, `css/styles.css`.
-- Scenes: `PreloadScene` (generate procedural textures) and `GameScene` (arena, units, towers, spells, simple AIs, rune flow, win logic).
+- Stack: Phaser 3 via CDN, no build system required. Static files only: `index.html`, `css/styles.css`, `js/*` (ES modules).
+- Scenes: `PreloadScene` (generate procedural textures) and `GameScene` (arena, units, towers, spells, simple AIs, rune flow, win logic). Now modularized under `js/scenes/*`.
+- Modules: `js/core/*` (constants, storage), `js/data/*` (cards), `js/systems/*` (ai, balance), `js/scenes/*`.
 - Data: Card library defined in JSON-friendly objects within `main.js`.
 - Persistence: Player profile with Royal Points and Sigil Shards saved in `localStorage`.
 - Performance: 60fps target with minimal draw calls; simple shapes as textures.
+
+### 7.1 Frontend Architecture
+- ES Module entry: `js/main.js` wires Phaser config and scenes.
+- Global Phaser via CDN; modules reference `Phaser` from window context.
+- Separation of concerns: rendering/scene vs. systems (AI, balance), data (cards), core utilities (storage, constants).
+
+### 7.2 Art Direction
+- See `ART_STYLE.md` for palettes, silhouettes, and VFX guidance.
 
 ### 8. Content Summary (Cards)
 - Ignis: Ember Spearman (troop, anti-air), Magma Brute (frontline), Ash Harpy (air), Flameburst (spell, AoE burn), Pyrelord Kael (champion, ignite aura).
