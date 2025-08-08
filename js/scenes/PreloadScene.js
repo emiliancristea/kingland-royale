@@ -10,6 +10,10 @@ export class PreloadScene extends Phaser.Scene{
     this.createRect('tower_left', 0x8b5cf6);
     this.createRect('tower_right', 0x22d3ee);
     this.createRect('sigil', 0xfacc15);
+
+    // UI button textures
+    this.createRounded('btn_cyan', 0x22d3ee, 220, 56, 14);
+    this.createRounded('btn_violet', 0x8b5cf6, 260, 56, 14);
   }
   createCircle(key, color){
     const g = this.make.graphics({x:0,y:0,add:false});
@@ -25,7 +29,14 @@ export class PreloadScene extends Phaser.Scene{
     g.generateTexture(key, 80,80);
     g.destroy();
   }
-  create(){ this.scene.start('game'); }
+  create(){ this.scene.start('menu'); }
+  createRounded(key, color, w, h, r){
+    const g = this.make.graphics({x:0,y:0,add:false});
+    g.fillStyle(color, 1);
+    g.fillRoundedRect(0,0,w,h,r);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
 }
 
 

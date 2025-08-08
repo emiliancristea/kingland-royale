@@ -1,5 +1,5 @@
 import { DEFAULT_DECK, getCard } from '../data/cards.js';
-import { loadPlayer, savePlayer } from '../core/storage.js';
+import { loadPlayer, savePlayer, getDeck } from '../core/storage.js';
 import { SimpleAI } from '../systems/ai.js';
 
 export class GameScene extends Phaser.Scene{
@@ -15,7 +15,7 @@ export class GameScene extends Phaser.Scene{
     this.handSprites = [];
     const saved = loadPlayer() || { rp:0, shards:0, deck:[...DEFAULT_DECK] };
     this.state = {
-      left:  { rune: 5, hand: [...(saved.deck||DEFAULT_DECK)], towers:[{hp:1200},{hp:1200}], score:0 },
+      left:  { rune: 5, hand: [...getDeck(DEFAULT_DECK)], towers:[{hp:1200},{hp:1200}], score:0 },
       right: { rune: 5, hand: [...DEFAULT_DECK], towers:[{hp:1200},{hp:1200}], score:0 },
     };
     this.centralSigil = { owner:null, progressLeft:0, progressRight:0 };
