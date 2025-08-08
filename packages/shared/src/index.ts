@@ -72,12 +72,18 @@ export interface StructureState {
   maxHp: number;
 }
 
+export interface SigilState {
+  // Charge by playerId, 0..100
+  charge: Record<string, number>;
+}
+
 export interface ServerState {
   timeMs: number;
   mana: Record<string, number>; // by playerId
   units: UnitState[];
   structures: StructureState[];
   crowns: Record<string, number>;
+  sigil: SigilState;
 }
 
 export type ClientToServerMessage =
@@ -207,6 +213,14 @@ export const CARDS: CardDefinition[] = [
 export function getCardById(id: string): CardDefinition | undefined {
   return CARDS.find(c => c.id === id);
 }
+
+export function getManaCost(cardId: string): number {
+  const def = getCardById(cardId);
+  return def?.manaCost ?? 3;
+}
+
+export const SIGIL_CENTER_Y = 0.5;
+export const SIGIL_RADIUS = 0.05; // normalized lane distance
 
 export interface Deck {
   cards: string[]; // length 8, IDs

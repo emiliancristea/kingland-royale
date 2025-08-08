@@ -12,6 +12,7 @@ class GameScene extends Phaser.Scene {
   private boardHeight = 640;
   private unitSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map();
   private manaText?: Phaser.GameObjects.Text;
+  private sigilText?: Phaser.GameObjects.Text;
 
   preload() {}
 
@@ -25,6 +26,7 @@ class GameScene extends Phaser.Scene {
     g.lineBetween(this.laneRightX, 40, this.laneRightX, 40 + this.boardHeight);
 
     this.manaText = this.add.text(320, 32, 'Mana: 0', { color: '#7fd1ff' }).setOrigin(0.5, 0);
+    this.sigilText = this.add.text(320, 16, 'Sigil: 0% / 0%', { color: '#fff' }).setOrigin(0.5, 0);
 
     const queueBtn = document.getElementById('queue') as HTMLButtonElement;
     const status = document.getElementById('status') as HTMLSpanElement;
@@ -85,7 +87,13 @@ class GameScene extends Phaser.Scene {
 
   update() {
     if (!this.state) return;
-    this.manaText?.setText(`Mana: ${Object.entries(this.state.mana).map(([id, m]) => id === this.playerId ? m.toFixed(1) : '').join('')}`);
+    const myMana = Object.entries(this.state.mana).find(([id]) => id === this.playerId)?.[1] ?? 0;
+    this.manaText?.setText(`Mana: ${myMana.toFixed(1)} / 10`);
+
+    const ids = Object.keys(this.state.sigil.charge);
+    const a = this.state.sigil.charge[ids[0]]?.toFixed(0) ?? '0';
+    const b = this.state.sigil.charge[ids[1]]?.toFixed(0) ?? '0';
+    this.sigilText?.setText(`Sigil: ${a}% / ${b}%`);
 
     // render or update units
     const seen = new Set<string>();

@@ -10,7 +10,7 @@ import type {
   UnitState,
   LaneId,
 } from '@kingland/shared';
-import { STARTER_DECK } from '@kingland/shared';
+import { STARTER_DECK, getManaCost, SIGIL_CENTER_Y, SIGIL_RADIUS } from '@kingland/shared';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 
@@ -87,6 +87,7 @@ function startMatch(players: ClientCtx[]) {
     units: [],
     structures: createStructures(players[0].id, players[1].id),
     crowns: { [players[0].id]: 0, [players[1].id]: 0 },
+    sigil: { charge: { [players[0].id]: 0, [players[1].id]: 0 } },
   };
   const match: MatchCtx = { id, players, state, lastTick: now };
   matches.set(id, match);
@@ -134,8 +135,7 @@ function getMatchByClient(client: ClientCtx): MatchCtx | undefined {
 
 function deployCard(match: MatchCtx, playerId: string, cardId: string, lane: LaneId, y: number) {
   const mana = match.state.mana[playerId] ?? 0;
-  // minimal costs for MVP
-  const cost = cardId.includes('champ') ? 6 : cardId.includes('spell') ? 3 : 3;
+  const cost = getManaCost(cardId);
   if (mana < cost) return;
   // restrict y to own half
   const isTop = isTopPlayer(match, playerId);
@@ -175,16 +175,21 @@ setInterval(() => {
 function stepMatch(match: MatchCtx, dtMs: number) {
   const dt = dtMs / 1000;
   match.state.timeMs += dtMs;
-  // mana regen
+
+  // mana regen ramp (1.0 -> 1.5 -> 2.0 per sec at 0s/60s/120s)
+  const tSec = match.state.timeMs / 1000;
+  const regen = tSec < 60 ? 1.0 : tSec < 120 ? 1.5 : 2.0;
   for (const p of match.players) {
-    match.state.mana[p.id] = Math.min(10, (match.state.mana[p.id] ?? 0) + dt * 1.0);
+    match.state.mana[p.id] = Math.min(10, (match.state.mana[p.id] ?? 0) + dt * regen);
   }
+
   // move units along lane
   for (const u of match.state.units) {
     const top = isTopPlayer(match, u.ownerId);
     const dir = top ? -1 : 1;
     u.pos.y += dir * 0.12 * dt; // base speed
   }
+
   // simple combat: units near enemy structures deal dps; remove dead structures
   for (const s of match.state.structures) {
     for (const u of match.state.units) {
@@ -197,4 +202,22 @@ function stepMatch(match: MatchCtx, dtMs: number) {
     }
   }
   match.state.structures = match.state.structures.filter((s) => s.hp > 0);
+
+  // Sigil capture: units near center increase owner charge, decrease opponent
+  const owners = match.players.map((p) => p.id);
+  const presence: Record<string, number> = { [owners[0]]: 0, [owners[1]]: 0 };
+  for (const u of match.state.units) {
+    if (Math.abs(u.pos.y - SIGIL_CENTER_Y) <= SIGIL_RADIUS) {
+      presence[u.ownerId] += 1;
+    }
+  }
+  const diff = presence[owners[0]] - presence[owners[1]];
+  const ratePerSec = 12; // percent per second at 1 unit advantage
+  if (diff !== 0) {
+    const advId = diff > 0 ? owners[0] : owners[1];
+    const defId = diff > 0 ? owners[1] : owners[0];
+    const delta = Math.min(100, Math.abs(diff)) * ratePerSec * dt;
+    match.state.sigil.charge[advId] = Math.min(100, (match.state.sigil.charge[advId] ?? 0) + delta);
+    match.state.sigil.charge[defId] = Math.max(0, (match.state.sigil.charge[defId] ?? 0) - delta * 0.5);
+  }
 }
