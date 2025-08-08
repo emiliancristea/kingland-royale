@@ -29,20 +29,21 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install deps (monorepo)
+      - name: Install deps (monorepo root)
         run: npm ci
 
-      - name: Build shared + client for Pages
+      - name: Build shared (library for client)
+        run: npm --workspace @kingland/shared run build
+
+      - name: Build client for GitHub Pages
+        working-directory: packages/client
         env:
-          # MUST match your repo name
-          BASE_PATH: /kingland-royale/
-          # Set this secret in repo Settings -> Secrets -> Actions
+          # MUST match repo name
           VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
         run: |
-          npm --workspace @kingland/shared run build
-          npm --workspace @kingland/client run build:gh
-          # SPA fallback
-          cp packages/client/dist/index.html packages/client/dist/404.html
+          npx vite build --base=/kingland-royale/
+          # SPA fallback so deep-links work
+          cp dist/index.html dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
