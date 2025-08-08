@@ -1,0 +1,37 @@
+name: Deploy Server (Fly.io)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Build server image
+        run: |
+          npm ci
+          npm --workspace @kingland/shared run build
+          npm --workspace @kingland/server run build
+
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl deploy --config fly.toml --remote-only --build-only
+          # Using build-only to ensure Dockerfile is valid; then deploy
+          flyctl deploy --config fly.toml --remote-only
