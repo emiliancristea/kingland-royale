@@ -40,3 +40,20 @@ WebSocket server
   VITE_WS_URL=wss://your-domain.example/ws npm --workspace @kingland/client run build:gh
   ```
   The client will connect to that WebSocket in production.
+
+## Hosting the Server
+
+Option A: Render (recommended for quick test)
+- Click “New Web Service” → “Use render.yaml”, select this repo
+- After deploy, note your server URL, e.g. `https://kingland-royale-server.onrender.com`
+- The WebSocket URL will be `wss://kingland-royale-server.onrender.com`
+- Set GitHub Actions secret `VITE_WS_URL` to that value
+- Re-run the Deploy Pages workflow
+
+Option B: Docker
+```bash
+# build and run locally
+docker build -t kingland-server -f server/Dockerfile .
+docker run -p 8080:8080 kingland-server
+# WebSocket: ws://localhost:8080 (use wss behind TLS in production)
+```

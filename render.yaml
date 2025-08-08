@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: kingland-royale-server
+    env: node
+    plan: free
+    buildCommand: |
+      npm ci && npm --workspace @kingland/shared run build && npm --workspace @kingland/server run build
+    startCommand: npm --workspace @kingland/server run start
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 8080

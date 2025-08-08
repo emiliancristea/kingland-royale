@@ -1,3 +1,4 @@
+import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import type {
@@ -28,14 +29,30 @@ interface MatchCtx {
   lastTick: number;
 }
 
-const wss = new WebSocketServer({ port: PORT });
-console.log(`[server] WebSocket listening on ws://localhost:${PORT}`);
+// Create an HTTP server for health checks and attach WebSocket upgrades
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('ok');
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Kingland Server');
+});
+
+const wss = new WebSocketServer({ server });
+server.listen(PORT, () => {
+  console.log(`[server] HTTP+WS listening on :${PORT}`);
+});
 
 const queue: ClientCtx[] = [];
 const matches = new Map<string, MatchCtx>();
 
 wss.on('connection', (ws) => {
   const client: ClientCtx = { id: uuidv4(), name: 'Warden', ws };
+  (ws as any).isAlive = true;
+  ws.on('pong', () => ((ws as any).isAlive = true));
+
   console.log(`[server] client connected ${client.id}`);
 
   ws.on('message', (raw) => {
@@ -53,6 +70,16 @@ wss.on('connection', (ws) => {
     // TODO: cleanup from queue/match
   });
 });
+
+// Keepalive: terminate dead sockets
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    const sock = ws as any;
+    if (sock.isAlive === false) return ws.terminate();
+    sock.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
 
 function send(ctx: ClientCtx, msg: ServerToClientMessage) {
   ctx.ws.send(JSON.stringify(msg));
