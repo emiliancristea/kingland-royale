@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { STARTER_DECK, type MatchInit, type ServerState, type LaneId } from '@kingland/shared';
 
-const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + (location.hostname || 'localhost') + ':8080';
+const WS_URL = (import.meta as any).env?.VITE_WS_URL ?? ((location.protocol === 'https:' ? 'wss://' : 'ws://') + (location.hostname || 'localhost') + ':8080');
 
 class GameScene extends Phaser.Scene {
   private ws?: WebSocket;
