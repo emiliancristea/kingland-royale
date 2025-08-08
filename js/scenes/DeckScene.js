@@ -1,5 +1,6 @@
 import { CARD_LIBRARY, DEFAULT_DECK } from '../data/cards.js';
 import { getDeck, setDeck } from '../core/storage.js';
+import { createCardUI } from '../ui/CardUI.js';
 
 export class DeckScene extends Phaser.Scene{
   constructor(){ super('deck'); }
@@ -15,14 +16,12 @@ export class DeckScene extends Phaser.Scene{
       const gx = idx % gridCols, gy = Math.floor(idx / gridCols);
       const x = margin + gx*(cell+margin) + cell*0.5;
       const y = startY + gy*(cell+margin) + cell*0.5;
-      const key = c.type==='spell'? 'spell_orange' : 'unit_green';
-      const card = this.add.image(x, y, key).setScale(1.0).setInteractive({useHandCursor:true});
-      const label = this.add.text(x, y+40, `${c.name}\n${c.cost}`, { fontSize:'12px', color:'#e2e8f0', align:'center' }).setOrigin(0.5);
+      const cardUI = createCardUI(this, c, x - cell*0.5 + 10, y - cell*0.5 + 10, { width: cell - 20 });
       const selected = deck.has(c.id);
-      card.setAlpha(selected? 1.0 : 0.6);
-      card.on('pointerup', ()=>{
+      cardUI.setSelected(selected);
+      cardUI.on('pointerup', ()=>{
         if (deck.has(c.id)) deck.delete(c.id); else if (deck.size<8) deck.add(c.id);
-        card.setAlpha(deck.has(c.id)?1.0:0.6);
+        cardUI.setSelected(deck.has(c.id));
       });
     });
 

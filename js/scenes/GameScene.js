@@ -1,5 +1,6 @@
 import { DEFAULT_DECK, getCard } from '../data/cards.js';
 import { loadPlayer, savePlayer, getDeck } from '../core/storage.js';
+import { createCardUI } from '../ui/CardUI.js';
 import { SimpleAI } from '../systems/ai.js';
 
 export class GameScene extends Phaser.Scene{
@@ -71,31 +72,31 @@ export class GameScene extends Phaser.Scene{
     const cards = this.state[this.playerSide].hand.slice(0, slots).map(getCard);
     for (let i=0;i<cards.length;i++){
       const c = cards[i];
-      const x = margin + (i*(slotSize+margin)) + slotSize/2;
-      const key = c.type==='spell'? (this.playerSide==='left'? 'spell_orange':'spell_cyan') : (this.playerSide==='left'? 'unit_green':'unit_teal');
-      const s = this.add.image(x, y, key).setScale(slotSize/64).setDepth(20).setInteractive({draggable:true});
-      s.cardId = c.id;
-      s.on('drag', (pointer, dragX, dragY)=>{ s.x = dragX; s.y = dragY; });
-      s.on('dragend', (pointer)=>{
-        const affordable = (getCard(s.cardId).cost||0) <= this.state[this.playerSide].rune;
-        if (affordable && Phaser.Geom.Rectangle.Contains(this.arenaRect, s.x, s.y)){
-          const clampedX = Phaser.Math.Clamp(s.x, this.arenaRect.x+20, this.arenaRect.right-20);
-          const clampedY = Phaser.Math.Clamp(s.y, this.arenaRect.y+20, this.arenaRect.bottom-20);
-          this.deployCard(this.playerSide, s.cardId, clampedX, clampedY);
+      const cx = margin + (i*(slotSize+margin));
+      const cardUI = createCardUI(this, c, cx, y - (slotSize*0.7), { width: slotSize });
+      cardUI.setDepth(20);
+      cardUI.setInteractive({ draggable:true, useHandCursor:true });
+      cardUI.on('drag', (pointer, dragX, dragY)=>{ cardUI.x = dragX; cardUI.y = dragY; });
+      cardUI.on('dragend', ()=>{
+        const affordable = (getCard(cardUI.cardId).cost||0) <= this.state[this.playerSide].rune;
+        if (affordable && Phaser.Geom.Rectangle.Contains(this.arenaRect, cardUI.x, cardUI.y)){
+          const clampedX = Phaser.Math.Clamp(cardUI.x, this.arenaRect.x+20, this.arenaRect.right-20);
+          const clampedY = Phaser.Math.Clamp(cardUI.y, this.arenaRect.y+20, this.arenaRect.bottom-20);
+          this.deployCard(this.playerSide, cardUI.cardId, clampedX, clampedY);
         }
-        this.tweens.add({ targets:s, x, y, duration:150, ease:'Sine.easeOut' });
+        this.tweens.add({ targets:cardUI, x: cx, y: y - (slotSize*0.7), duration:150, ease:'Sine.easeOut' });
       });
-      this.handSprites.push(s);
+      this.handSprites.push(cardUI);
     }
     this.updateHandAffordability();
   }
 
   updateHandAffordability(){
     const rune = this.state[this.playerSide].rune;
-    for (const s of this.handSprites){
-      const cost = (getCard(s.cardId).cost)||0;
-      s.setAlpha(cost<=rune? 1.0 : 0.45);
-    }
+      for (const s of this.handSprites){
+        const cost = (getCard(s.cardId).cost)||0;
+        if (typeof s.setAffordable === 'function') s.setAffordable(cost<=rune); else s.setAlpha(cost<=rune?1:0.45);
+      }
   }
 
   laneY(lane){
