@@ -102,14 +102,24 @@ Setup:
 git clone https://github.com/emiliancristea/kingland-royale.git
 cd kingland-royale
 
-# Install (once code scaffolding is added)
-# pnpm install
+Start a static server (or open the file directly):
 
-# Start dev servers (client and server planned)
-# In separate terminals
-# pnpm --filter @kingland/client dev
-# pnpm --filter @kingland/server dev
+```powershell
+# Option A: Use Python's simple server
+python -m http.server 5173
+
+# Option B: Use Node's http-server (if installed)
+npx http-server -p 5173 -c-1
+
+# Then open in browser
+Start-Process http://localhost:5173
 ```
+
+### Deploy to GitHub Pages
+Because this is a static site, you can enable Pages on the `main` branch root:
+- Push to `main`
+- In GitHub repo settings → Pages → Build and deployment → Deploy from branch → `main` / `/ (root)`
+- Wait for the deployment to finish; your game will be available at the Pages URL.
 
 ### Contributing
 We welcome issues and PRs. Please:

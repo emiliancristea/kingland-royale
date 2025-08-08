@@ -149,6 +149,7 @@
       this.unitIdCounter = 0;
       this.units = [];
       this.projectiles = [];
+      this.handSprites = [];
       const saved = loadPlayer() || { rp:0, shards:0, deck:[...DEFAULT_DECK] };
       this.state = {
         left:  { rune: 5, hand: [...(saved.deck||DEFAULT_DECK)], towers:[{hp:1200},{hp:1200}], score:0 },
@@ -188,6 +189,9 @@
       this.hudRuneLeft = this.add.text(this.arenaRect.x, this.arenaRect.y - 30, 'Rune L: 5', hudStyle).setOrigin(0,1).setDepth(10);
       this.hudRuneRight = this.add.text(this.arenaRect.right, this.arenaRect.y - 30, 'Rune R: 5', hudStyle).setOrigin(1,1).setDepth(10);
 
+      // Bottom Card Hand (first 4 from player's hand)
+      this.buildHandSprites();
+
       // Input handlers for drag deploy
       this.input.on('pointerdown', (p)=>{
         if (!p.isDown) return;
@@ -202,6 +206,45 @@
         const y = Phaser.Math.Clamp(p.y, this.arenaRect.y+20, this.arenaRect.bottom-20);
         this.deployCard(side, card.id, x, y);
       });
+    }
+
+    buildHandSprites(){
+      // clear existing
+      for (const s of this.handSprites){ s.destroy(); }
+      this.handSprites.length = 0;
+      const w = this.scale.width; const h = this.scale.height;
+      const margin = 16; const slots = 4; const slotSize = Math.min(96, (w - margin*(slots+1))/slots);
+      const y = this.arenaRect.bottom + 10 + slotSize/2;
+      const cards = this.state[this.playerSide].hand.slice(0, slots).map(getCard);
+      for (let i=0;i<cards.length;i++){
+        const c = cards[i];
+        const x = margin + (i*(slotSize+margin)) + slotSize/2;
+        const key = c.type==='spell'? (this.playerSide==='left'? 'spell_orange':'spell_cyan') : (this.playerSide==='left'? 'unit_green':'unit_teal');
+        const s = this.add.image(x, y, key).setScale(slotSize/64).setDepth(20).setInteractive({draggable:true});
+        s.cardId = c.id;
+        s.on('drag', (pointer, dragX, dragY)=>{ s.x = dragX; s.y = dragY; });
+        s.on('dragend', (pointer)=>{
+          // If dropped inside arena and affordable, deploy; else snap back
+          const affordable = (getCard(s.cardId).cost||0) <= this.state[this.playerSide].rune;
+          if (affordable && Phaser.Geom.Rectangle.Contains(this.arenaRect, s.x, s.y)){
+            const clampedX = Phaser.Math.Clamp(s.x, this.arenaRect.x+20, this.arenaRect.right-20);
+            const clampedY = Phaser.Math.Clamp(s.y, this.arenaRect.y+20, this.arenaRect.bottom-20);
+            this.deployCard(this.playerSide, s.cardId, clampedX, clampedY);
+          }
+          // snap back to slot
+          this.tweens.add({ targets:s, x, y, duration:150, ease:'Sine.easeOut' });
+        });
+        this.handSprites.push(s);
+      }
+      this.updateHandAffordability();
+    }
+
+    updateHandAffordability(){
+      const rune = this.state[this.playerSide].rune;
+      for (const s of this.handSprites){
+        const cost = (getCard(s.cardId).cost)||0;
+        s.setAlpha(cost<=rune? 1.0 : 0.45);
+      }
     }
 
     laneY(lane){
@@ -275,6 +318,7 @@
       this.hudTimer.setText(`${mm}:${ss}`);
       this.hudRuneLeft.setText(`Rune L: ${Math.floor(this.state.left.rune)}`);
       this.hudRuneRight.setText(`Rune R: ${Math.floor(this.state.right.rune)}`);
+      this.updateHandAffordability();
 
       // AI turns
       this.aiLeft.update(time);
